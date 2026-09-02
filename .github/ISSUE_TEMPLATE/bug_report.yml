@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in Vanish does not work
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: macOS and iOS versions
+      placeholder: "macOS 15.6, iPhone 15 Pro on iOS 18.5"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: connection
+    attributes:
+      label: How was the iPhone connected?
+      options: [USB cable, Wi-Fi, Not connected (mock mode)]
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Which layer did the session open on?
+      description: "The status bar shows this as `layer: …` while spoofing."
+      options: [lockdown, dvt, mock, "No session opened at all", "Don't know"]
+    validations:
+      required: true
+
+  - type: textarea
+    id: hint
+    attributes:
+      label: Hint banner text
+      description: >
+        If the app showed a yellow banner over the map, paste it in full — it carries the
+        failure detail from every pathway that was tried.
+      render: text
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Engine log
+      description: >
+        Run the engine in the foreground with
+        `engine/venv/bin/python engine/daemon.py --verbose` and paste the relevant part.
+        Redact your UDID and LAN addresses if you would rather not share them.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before filing
+      options:
+        - label: Developer Mode is on (Settings → Privacy & Security → Developer Mode)
+        - label: The iPhone is unlocked and "Trust this computer" was accepted
+        - label: I tried `--mock` mode and noted whether the problem happens there too

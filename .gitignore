@@ -1,0 +1,24 @@
+# Python engine
+engine/venv/
+__pycache__/
+*.py[cod]
+
+# Swift Package Manager
+app/.build/
+app/.swiftpm/
+Package.resolved
+
+# Built app bundle (produced by scripts/make_app.sh)
+Vanish.app/
+dist/
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editors
+.vscode/
+*.swp
+*~

@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Mac app
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcode-select -p
+          swift --version
+
+      - name: Build (debug)
+        working-directory: app
+        run: swift build
+
+      - name: Build (release)
+        working-directory: app
+        run: swift build -c release
+
+      - name: Fail on warnings
+        working-directory: app
+        run: |
+          touch Sources/Vanish/*.swift
+          swift build -c release 2>&1 | tee build.log
+          if grep -q "warning:" build.log; then
+            echo "::error::build produced warnings"
+            grep "warning:" build.log
+            exit 1
+          fi
+
+  engine:
+    name: Engine
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r engine/requirements.txt
+
+      - name: Byte-compile
+        run: python -m compileall -q engine
+
+      - name: Smoke test the engine in mock mode
+        run: |
+          python engine/daemon.py --mock --port 8799 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8799/api/health && break
+            sleep 1
+          done
+
+          echo "--- status ---"
+          curl -sf http://127.0.0.1:8799/api/status | tee /tmp/status.json
+          python -c "import json; s=json.load(open('/tmp/status.json')); assert s['mode']=='mock', s; assert s['session'] is None, s"
+
+          echo "--- teleport ---"
+          curl -sf -X POST -d '{"lat":48.8584,"lon":2.2945}' http://127.0.0.1:8799/api/spoof
+          curl -sf http://127.0.0.1:8799/api/status | tee /tmp/status.json
+          python -c "import json; s=json.load(open('/tmp/status.json'))['session']; assert abs(s['lat']-48.8584)<1e-6, s; assert s['kind']=='teleport', s"
+
+          echo "--- route ---"
+          curl -sf -X POST -d '{"points":[{"lat":48.85,"lon":2.29,"delay_ms":50},{"lat":48.86,"lon":2.30,"delay_ms":50}],"loop":false}' http://127.0.0.1:8799/api/route
+          sleep 2
+          python -c "
+          import json, urllib.request
+          s = json.load(urllib.request.urlopen('http://127.0.0.1:8799/api/status'))
+          assert s['route']['total'] == 2, s
+          assert s['session']['kind'] == 'route', s
+          "
+
+          echo "--- remote page ---"
+          curl -sf http://127.0.0.1:8799/ | grep -q "Vanish Remote"
+
+          echo "--- cli ---"
+          python engine/cli.py status > /dev/null
+          python engine/cli.py teleport --lat 35.6595 --lon 139.7005
+          python engine/cli.py stop
+          python -c "
+          import json, urllib.request
+          s = json.load(urllib.request.urlopen('http://127.0.0.1:8799/api/status'))
+          assert s['session'] is None, s
+          "
+
+          curl -sf -X POST -d '{}' http://127.0.0.1:8799/api/shutdown
+
+      - name: Nudge arrows point where they move
+        run: |
+          python - <<'PY'
+          import re
+          src = open("engine/daemon.py").read()
+          names = {8592: "W", 8593: "N", 8594: "E", 8595: "S",
+                   8598: "NW", 8599: "NE", 8600: "SE", 8601: "SW"}
+          found = re.findall(r'nudge\((-?\d),(-?\d)\)">&#(\d+);', src)
+          assert len(found) == 8, f"expected 8 nudge buttons, found {len(found)}"
+          for dx, dy, code in found:
+              dx, dy = int(dx), int(dy)
+              if dx == dy == 0:
+                  continue
+              want = ("N" if dy > 0 else "S" if dy < 0 else "") + ("E" if dx > 0 else "W" if dx < 0 else "")
+              got = names[int(code)]
+              assert got == want, f"dx={dx} dy={dy} shows {got}, should be {want}"
+          print("all nudge arrows agree with their direction")
+          PY

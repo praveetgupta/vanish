@@ -1,0 +1,7 @@
+# The engine's only direct dependency. pymobiledevice3 pulls in everything else
+# (construct, cryptography, asyncio transports, the RSD/tunnel stack).
+#
+# v11 is asyncio-based and moved LocationSimulation/DtSimulateLocation to
+# coroutines; engine/injector.py is written against that API, so keep the major
+# version pinned.
+pymobiledevice3>=11.3.0,<12
