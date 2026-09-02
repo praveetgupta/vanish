@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" alt="Vanish app icon" width="128">
+</p>
+
 # Vanish
 
 [![CI](https://github.com/praveetgupta/vanish/actions/workflows/ci.yml/badge.svg)](https://github.com/praveetgupta/vanish/actions/workflows/ci.yml)
@@ -241,7 +245,9 @@ engine/
   injector.py           The four device pathways, over pymobiledevice3
   cli.py                Command-line client
   requirements.txt      pymobiledevice3
-scripts/make_app.sh     venv + swift build + bundle + sign + install
+scripts/
+  make_app.sh           venv + swift build + icon + bundle + sign + install
+  make_icon.swift       renders the app icon at build time
 docs/ARCHITECTURE.md    How the pieces fit together
 ```
 

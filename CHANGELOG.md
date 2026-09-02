@@ -31,5 +31,8 @@ First public release.
 - **Mock mode** (`--mock`) so the entire app is usable and testable with no iPhone attached.
 - **Startup rescue** that clears a simulated location left behind by a force-killed engine,
   so the phone never gets stuck somewhere.
+- **App icon**, rendered at build time by `scripts/make_icon.swift`: a navigation arrow
+  with a ghost of itself trailing behind, on a navy-to-green gradient tile that picks up
+  the same green the map puck uses.
 - Clean session teardown: the simulation is cleared, the DTX channel is given time to process
   it, and the native tunnel is torn down so iOS falls back to its real GPS.

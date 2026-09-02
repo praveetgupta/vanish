@@ -30,6 +30,23 @@ jobs:
         working-directory: app
         run: swift build -c release
 
+      - name: Render the app icon
+        run: |
+          swift scripts/make_icon.swift /tmp/AppIcon1024.png
+          python3 - <<'PY'
+          import subprocess
+          out = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight",
+                                "/tmp/AppIcon1024.png"], capture_output=True, text=True).stdout
+          dims = dict(l.strip().split(": ") for l in out.splitlines() if ":" in l and "pixel" in l)
+          assert dims["pixelWidth"] == "1024" and dims["pixelHeight"] == "1024", dims
+          print("icon renders at 1024x1024")
+          PY
+          mkdir -p /tmp/AppIcon.iconset
+          sips -z 16 16 /tmp/AppIcon1024.png --out /tmp/AppIcon.iconset/icon_16x16.png > /dev/null
+          cp /tmp/AppIcon1024.png /tmp/AppIcon.iconset/icon_512x512@2x.png
+          iconutil -c icns /tmp/AppIcon.iconset -o /tmp/AppIcon.icns
+          test -s /tmp/AppIcon.icns && echo "icns builds"
+
       - name: Fail on warnings
         working-directory: app
         run: |
